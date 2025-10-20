@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UNSPOKEN WORDS</title>
+
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400&family=Courier+Prime&display=swap" rel="stylesheet">
+
+<style>
+/* General Styles */
+body {
+    font-family: 'Roboto', sans-serif;
+    background: linear-gradient(to bottom, #e6d9ff, #d9caff); /* light purple background */
+    margin: 0;
+    padding: 20px;
+    color: #333;
+}
+
+h1 {
+    font-family: 'Courier Prime', monospace;
+    font-size: 60px;
+    color: #6a0dad; /* darker purple for the site title */
+    text-align: center;
+    margin-bottom: 30px;
+    letter-spacing: 2px;
+}
+
+/* Form Styles */
+form {
+    background: #fff;
+    padding: 25px;
+    border-radius: 15px;
+    max-width: 600px;
+    margin: 0 auto 30px auto;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+}
+
+form input, form textarea, form select, form button {
+    width: 100%;
+    padding: 12px;
+    margin: 8px 0;
+    border-radius: 10px;
+    border: 1px solid #ccc;
+    font-size: 16px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.03);
+}
+
+form button {
+    background: #6a0dad; /* dark purple */
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+form button:hover {
+    background: #4b0082; /* deeper purple on hover */
+}
+
+/* Search Bar */
+#search {
+    max-width: 600px;
+    margin: 0 auto 30px auto;
+    display: flex;
+    gap: 10px;
+}
+
+#search input {
+    flex: 1;
+    padding: 12px;
+    border-radius: 10px;
+    border: 1px solid #ccc;
+}
+
+#search button {
+    padding: 12px 20px;
+    border-radius: 10px;
+    border: none;
+    background: #6a0dad;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+#search button:hover {
+    background: #4b0082;
+}
+
+/* Letters Grid */
+#letters {
+    max-width: 900px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr); /* 3 letters per row */
+    gap: 20px;
+}
+
+/* Individual Letters */
+.letter {
+    background: #fff;
+    padding: 20px;
+    border-left: 6px solid;
+    border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    transition: transform 0.2s, box-shadow 0.2s;
+    font-style: italic;
+}
+
+.letter:hover {
+    transform: scale(1.02);
+    box-shadow: 0 6px 15px rgba(0,0,0,0.08);
+}
+
+.letter strong {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+}
+</style>
+</head>
+<body>
+
+<h1>UNSPOKEN WORDS</h1>
+
+<form id="letterForm">
+  <input type="text" name="to" placeholder="To: someone" required>
+  <textarea name="message" placeholder="Your message..." required></textarea>
+  <label>Choose border color (represents your emotion):</label>
+  <input type="color" name="color" value="#b19cd9">
+  <button type="submit">Send 🩷</button>
+</form>
+
+<div id="search">
+  <input type="text" id="searchName" placeholder="Search by name...">
+  <button id="searchBtn">Search</button>
+</div>
+
+<div id="letters"></div>
+
+<script>
+const form = document.getElementById('letterForm');
+const lettersDiv = document.getElementById('letters');
+const searchBtn = document.getElementById('searchBtn');
+
+// Use your backend URL here. If none, letters won't persist across reloads.
+const BACKEND_URL = 'http://localhost:3000'; 
+
+// Load letters
+async function loadLetters() {
+    try {
+        const res = await fetch(`${BACKEND_URL}/letters`);
+        const data = await res.json();
+        displayLetters(data);
+    } catch (err) {
+        lettersDiv.innerHTML = '<p style="grid-column:1/-1;text-align:center;color:#6a0dad;">Letters cannot load right now.</p>';
+        console.log('Cannot fetch letters (backend not running)');
+    }
+}
+
+// Display letters in 3-column grid
+function displayLetters(arr) {
+    lettersDiv.innerHTML = arr.map(l =>
+        `<div class="letter" style="border-color:${l.color}">
+            <strong>To: ${l.to}</strong>
+            <p>${l.message}</p>
+        </div>`).join('');
+}
+
+// Submit letter
+form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const to = form.to.value.trim();
+    const message = form.message.value.trim();
+    const color = form.color.value;
+    if(!to || !message) return;
+
+    try {
+        await fetch(`${BACKEND_URL}/submit`, {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({ to, message, color })
+        });
+    } catch(err) {
+        console.log('Cannot submit letter (backend not running)');
+    }
+
+    form.reset();
+    loadLetters();
+});
+
+// Search letters
+searchBtn.addEventListener('click', async () => {
+    const term = document.getElementById('searchName').value;
+    try {
+        const res = await fetch(`${BACKEND_URL}/search?term=${term}`);
+        const data = await res.json();
+        displayLetters(data);
+    } catch(err) {
+        console.log('Cannot search letters (backend not running)');
+    }
+});
+
+loadLetters();
+</script>
+
+</body>
+</html>
